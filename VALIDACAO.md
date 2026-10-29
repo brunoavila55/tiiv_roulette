@@ -1,3 +1,25 @@
+# Validação 2.1 — 28/10/2026
+
+- `assembleDebug assembleDebugAndroidTest testDebugUnitTest lintDebug`: sucesso.
+- 19 testes unitários passaram, sem falhas: sete de sorteio e doze de estado.
+- Android Lint: zero erros e três avisos de versões mais recentes de ferramentas
+  e dependências de testes. Assinatura APK validada e certificados 2.0/2.1 comparados.
+- Manifesto inspecionado: sem permissões de internet ou acesso amplo à galeria.
+- Cobertura de estado: migração do JSON antigo com fotos e rodada; isolamento de
+  itens, repetição e último resultado; serialização de todas as listas e seleção;
+  reinício isolado; exclusão com seleção válida; proteção da última lista;
+  renomeação; nomes inválidos/duplicados; referências a fotos em listas inativas;
+  leitura inválida sem mutação parcial; recuperação de seleção ausente.
+- A suíte instrumentada inclui persistência de múltiplas listas em arquivo real.
+  Foi compilada, mas não executada neste ambiente sem aceleração do emulador.
+- A inspeção visual em aparelho ou emulador continua pendente. Não foi repetida a
+  tentativa de boot por software descrita na validação 2.0 abaixo.
+- APK 2.1.0 / versionCode 4: `dist/Tiiv-Roulette-2.1.0.apk`.
+- Usa a mesma chave de desenvolvimento do APK 2.0.0, permitindo atualização dessa
+  versão com preservação dos dados. O formato antigo é migrado para “Meus itens”.
+
+---
+
 # Validação 2.0 — 28/10/2026
 
 ## Compilação

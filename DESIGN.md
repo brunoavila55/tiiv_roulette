@@ -1,4 +1,4 @@
-# Interface 2.0 — cartas na mesa
+# Interface 2.1 — cartas na mesa
 
 Aplicativo Android offline para decisões do dia a dia, com nomes e fotos próprios.
 A ação principal é juntar opções e revelar uma escolha de forma lúdica.
@@ -19,8 +19,8 @@ A lista é contínua, com divisórias; o botão principal fica acessível no rod
 
 ```text
 tiiv / roulette                 + Item
-Uma carta.
-Uma escolha.
+[ Sorteio atual ▾ ]       Novo    ⋮
+Uma carta decide.
           [ cartas ]
        opções disponíveis
 Sem repetir                    chave
@@ -52,3 +52,12 @@ roláveis e botão principal fora da lista. A revelação anuncia o nome por
 acessibilidade. A carta no palco abrevia nomes longos; lista e resultado mostram
 o nome completo. Testes em aparelho/emulador continuam necessários para validar
 layout, fonte ampliada, galeria e movimento reais.
+
+## Múltiplos sorteios
+
+O seletor de assunto fica imediatamente abaixo da marca, com criação e opções
+na mesma linha para manter o palco de cartas visível. O título passa a ser uma
+linha e o palco usa 230 dp de altura. Ao sortear, a rolagem enquadra o palco.
+Os controles de assunto são bloqueados junto dos itens durante a animação.
+O resultado identifica o assunto escolhido. Nomes longos podem quebrar linha;
+o seletor de listas do Android mantém a lista de assuntos rolável.

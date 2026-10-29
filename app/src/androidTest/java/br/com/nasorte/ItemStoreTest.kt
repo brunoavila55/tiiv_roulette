@@ -54,4 +54,21 @@ class ItemStoreTest {
         assertTrue(reloaded.eligible().isEmpty())
         assertEquals("a", reloaded.lastId)
     }
+    @Test fun testMultipleListsAndSelectionSurviveActualDiskReload() {
+        val store = ItemStore(isolatedContext)
+        val days = store.createList("Dia da semana")
+        store.items.add(ItemStore.Item("segunda", "Segunda", "dia.jpg"))
+        store.noRepeat = true; store.drawn.add("segunda"); store.lastId = "segunda"
+        store.createList("Roupa")
+        store.items.add(ItemStore.Item("camiseta", "Camiseta", "roupa.jpg"))
+        store.createList("Calçado")
+        store.items.add(ItemStore.Item("tenis", "Tênis", "tenis.jpg"))
+        store.selectList(days.id); store.save()
+        val reloaded = ItemStore(isolatedContext).apply { load() }
+        assertEquals(store.lists, reloaded.lists)
+        assertEquals(days.id, reloaded.selectedListId)
+        assertTrue(reloaded.eligible().isEmpty())
+        assertTrue(reloaded.usesPhoto("roupa.jpg"))
+    }
+
 }

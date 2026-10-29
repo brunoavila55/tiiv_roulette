@@ -149,9 +149,22 @@ class MainActivity : Activity() {
         brand.addView(text("tiiv", 28, BLUE, true))
         brand.addView(text(" / roulette", 17, MUTED), LinearLayout.LayoutParams(0, -2, 1f))
         brand.addView(button("+ Item") { edit(null) }.apply { isEnabled = healthy })
-        content.addView(brand); gap(content, 26)
-        content.addView(display("Uma carta.\nUma escolha.", 44)); gap(content, 10)
-        content.addView(text("Junte suas opções. Deixe a surpresa decidir.", 16, MUTED)); gap(content, 12)
+        content.addView(brand); gap(content, 14)
+        val listActions = row()
+        listActions.addView(button("${store.current.name}  ▾") { chooseList() }.apply {
+            isEnabled = healthy; contentDescription = "Trocar sorteio: ${store.current.name}"
+        }, LinearLayout.LayoutParams(0, -2, 1f))
+        listActions.addView(button("Novo") { nameList() }.apply {
+            isEnabled = healthy; contentDescription = "Criar novo sorteio"
+            setPadding(dp(10), dp(10), dp(10), dp(10))
+        }, LinearLayout.LayoutParams(dp(64), dp(54)).apply { leftMargin = dp(8) })
+        listActions.addView(button("⋮") { listMenu() }.apply {
+            isEnabled = healthy; textSize = 24f; setPadding(0, 0, 0, 0)
+            contentDescription = "Opções do sorteio ${store.current.name}"
+        }, LinearLayout.LayoutParams(dp(48), dp(54)).apply { leftMargin = dp(8) })
+        content.addView(listActions); gap(content, 18)
+        content.addView(display("Uma carta decide.", 34)); gap(content, 8)
+        content.addView(text("Cada sorteio tem suas próprias cartas.", 15, MUTED)); gap(content, 12)
         deck = DeckView().apply { contentDescription = "Cartas do sorteio" }
         full(content, deck)
         val ready = when {
@@ -183,7 +196,7 @@ class MainActivity : Activity() {
         heading.addView(text("${store.items.size} ${if (store.items.size == 1) "item" else "itens"}", 14, MUTED))
         content.addView(heading); gap(content, 12)
         if (store.items.isEmpty()) {
-            full(content, text("Quem participa?\nAdicione pessoas, filmes, pratos ou suas próximas ideias.", 16, MUTED).apply {
+            full(content, text("Este sorteio ainda está vazio.\nAdicione as opções de ${store.current.name}.", 16, MUTED).apply {
                 setPadding(dp(18), dp(24), dp(18), dp(24)); background = shape(WHITE, 16, true)
             })
             gap(content, 12); full(content, button("Adicionar primeiro item") { edit(null) }.apply { isEnabled = healthy })
@@ -216,8 +229,56 @@ class MainActivity : Activity() {
             toast("Não foi possível salvar. Verifique o espaço do aparelho e tente novamente."); false
         }
     }
+    private fun chooseList() {
+        val lists = store.lists.toList()
+        val labels = lists.map { "${it.name} (${it.items.size})" }.toTypedArray()
+        AlertDialog.Builder(this).setTitle("Qual sorteio vamos abrir?")
+            .setSingleChoiceItems(labels, lists.indexOfFirst { it.id == store.selectedListId }) { dialog, which ->
+                if (change { store.selectList(lists[which].id) }) { dialog.dismiss(); render() }
+            }.setPositiveButton("Novo sorteio") { _, _ -> nameList() }
+            .setNegativeButton("Cancelar", null).show()
+    }
+    private fun nameList(existing: ItemStore.DrawList? = null) {
+        val body = dialogBody()
+        body.addView(display(if (existing == null) "Um novo sorteio." else "Nome do sorteio.", 30)); gap(body, 8)
+        body.addView(text("Separe suas escolhas por assunto.", 15, MUTED)); gap(body, 20)
+        body.addView(text("Nome do sorteio", 14, INK, true)); gap(body, 8)
+        val input = EditText(this).apply {
+            setSingleLine(true); textSize = 17f; setTextColor(INK); setHintTextColor(MUTED)
+            hint = "Ex.: Dia da semana, Roupa, Calçado"
+            filters = arrayOf(InputFilter.LengthFilter(80))
+            setPadding(dp(14), dp(12), dp(14), dp(12)); background = shape(BG, 12, true)
+            contentDescription = "Nome do sorteio"; setText(existing?.name.orEmpty())
+        }
+        full(body, input); gap(body, 20)
+        lateinit var dialog: Dialog
+        full(body, button(if (existing == null) "Criar sorteio" else "Salvar nome", true) {
+            val name = input.text.toString().trim()
+            if (name.isEmpty()) { input.error = "Escreva um nome para o sorteio"; input.requestFocus() }
+            else if (store.lists.any { it.id != existing?.id && it.name.equals(name, ignoreCase = true) }) {
+                input.error = "Já existe um sorteio com esse nome"; input.requestFocus()
+            } else if (change {
+                if (existing == null) store.createList(name) else store.renameList(existing.id, name)
+            }) { dialog.dismiss(); render() }
+        })
+        gap(body, 8); full(body, button("Cancelar") { dialog.dismiss() })
+        dialog = showDialog(body)
+    }
+    private fun listMenu() {
+        val list = store.current
+        val options = if (store.lists.size > 1) arrayOf("Renomear sorteio", "Excluir sorteio") else arrayOf("Renomear sorteio")
+        AlertDialog.Builder(this).setTitle(list.name).setItems(options) { _, which ->
+            if (which == 0) nameList(list)
+            else AlertDialog.Builder(this).setTitle("Excluir “${list.name}”?")
+                .setMessage("Este sorteio e seus ${list.items.size} itens serão removidos. Os outros sorteios serão mantidos.")
+                .setNegativeButton("Cancelar", null).setPositiveButton("Excluir") { _, _ ->
+                    val photos = list.items.map { it.photo }
+                    if (change { store.deleteList(list.id) }) { photos.forEach { discardPhoto(it) }; render() }
+                }.show()
+        }.show()
+    }
     private fun resetRound() {
-        AlertDialog.Builder(this).setTitle("Reiniciar a rodada?").setMessage("Todos os itens poderão ser sorteados novamente.")
+        AlertDialog.Builder(this).setTitle("Reiniciar a rodada?").setMessage("Os itens de “${store.current.name}” poderão ser sorteados novamente.")
             .setNegativeButton("Cancelar", null).setPositiveButton("Reiniciar") { _, _ ->
                 if (change { store.drawn.clear(); store.lastId = "" }) render()
             }.show()
@@ -325,7 +386,7 @@ class MainActivity : Activity() {
         photoButton.setText(R.string.change_photo)
     }
     private fun discardPhoto(photo: String) {
-        if (photo.isEmpty() || store.items.any { it.photo == photo }) return
+        if (photo.isEmpty() || store.usesPhoto(photo)) return
         cache.remove("$photo:thumb"); cache.remove("$photo:full"); File(filesDir, photo).delete()
     }
     private fun bitmap(photo: String, thumb: Boolean): Bitmap? {
@@ -349,7 +410,7 @@ class MainActivity : Activity() {
         deck.winner = winner
         deck.announceForAccessibility("Sorteando uma carta")
         // Bring the stage into view when drawing again from a scrolled list.
-        (content.parent as? ScrollView)?.smoothScrollTo(0, 0)
+        (content.parent as? ScrollView)?.smoothScrollTo(0, max(0, deck.top - dp(16)))
         animator = ValueAnimator.ofFloat(0f, 1f).apply {
             duration = 2400
             interpolator = android.view.animation.LinearInterpolator()
@@ -378,7 +439,7 @@ class MainActivity : Activity() {
         gap(body, 20)
         val name = display(winner.name, 34).apply { gravity = Gravity.CENTER; accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE }
         full(body, name); gap(body, 8)
-        full(body, text("A escolha desta vez é essa.", 15, MUTED).apply { gravity = Gravity.CENTER }); gap(body, 24)
+        full(body, text("Sorteio: ${store.current.name}", 15, MUTED).apply { gravity = Gravity.CENTER }); gap(body, 24)
         val exhausted = store.eligible().isEmpty()
         full(body, button(if (exhausted) "Voltar à lista" else "Sortear outra carta", true) {
             result?.dismiss(); if (!exhausted) draw()
@@ -463,7 +524,7 @@ class MainActivity : Activity() {
         private val labelPaint = android.text.TextPaint(Paint.ANTI_ALIAS_FLAG).apply { textSize = 14f; typeface = labelFace }
         private val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
         override fun onMeasure(widthSpec: Int, heightSpec: Int) {
-            setMeasuredDimension(MeasureSpec.getSize(widthSpec), dp(258))
+            setMeasuredDimension(MeasureSpec.getSize(widthSpec), dp(230))
         }
         override fun onDraw(canvas: Canvas) {
             super.onDraw(canvas)
